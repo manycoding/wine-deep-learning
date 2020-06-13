@@ -20,7 +20,7 @@ HEADERS = {
     )
 }
 DATA_DIR = "data"
-FILENAME = "winemag-data"
+FILENAME = "winemag-data-{0}-{1}"
 
 UNKNOWN_FORMAT = 0
 APPELLATION_FORMAT_0 = 1
@@ -51,6 +51,7 @@ class Scraper:
             self.worker_pool = Pool(num_jobs)
         else:
             self.multiprocessing = False
+        FILENAME = FILENAME.format(pages_to_scrape, year)
 
     def scrape_site(self):
         if self.clear_old_data:
@@ -305,7 +306,7 @@ class Scraper:
         return review_format
 
     def save_data(self, data):
-        filename = "{}/{}_{}.json".format(DATA_DIR, FILENAME, time.time())
+        filename = f"{DATA_DIR}/{time.time()}.json"
         try:
             os.makedirs(DATA_DIR)
         except OSError:
@@ -332,12 +333,12 @@ class Scraper:
     def condense_data(self):
         print("Condensing Data...")
         condensed_data = []
-        all_files = glob.glob("{}/*.json".format(DATA_DIR))
+        all_files = glob.glob(f"{DATA_DIR}/*.json")
         for file in all_files:
             with open(file, "rb") as fin:
                 condensed_data += json.load(fin)
         print(len(condensed_data))
-        filename = "{}.json".format(FILENAME)
+        filename = f"{FILENAME}.json"
         with open(filename, "w") as fout:
             json.dump(condensed_data, fout)
 
