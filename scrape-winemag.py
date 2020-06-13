@@ -86,12 +86,15 @@ class Scraper:
         for review in reviews:
             self.cross_process_review_count += 1
             isolated_review_count += 1
-            review_url = review.find("a", {"class": "review-listing"})["href"]
             try:
-                review_data = self.scrape_review(review_url)
-            except Exception as e:
-                print("Encountered error", e)
-                continue
+                review_url = review.find("a", {"class": "review-listing"})["href"]
+                try:
+                    review_data = self.scrape_review(review_url)
+                except Exception as e:
+                    print("Encountered error", e)
+                    continue
+            except:
+                print(review_url)
             scrape_data.append(review_data)
         self.page_scraped += 1
         self.update_scrape_status()
@@ -215,6 +218,7 @@ class Scraper:
             )
         except Exception as e:
             print("Encountered error", e)
+            taster_name, taster_twitter_handle, taster_photo = None, None, None
 
         review_data = {
             "points": points,
@@ -241,7 +245,9 @@ class Scraper:
         try:
             return self.parse_taster(taster_soup)
         except ReviewFormatException as e:
-            print(f"\n-----\nError parsing: {taster_url}\n{e.message}\n-----")
+            raise ReviewFormatException(
+                f"\n-----\nError parsing: {taster_url}\n{e.message}\n-----"
+            )
 
     def parse_taster(self, taster_soup):
         name = taster_soup.title.string.split(" |")[0]
@@ -363,9 +369,9 @@ class ReviewFormatException(Exception):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("pages", nargs=2, type=int, help="pages range to scrape")
-    parser.add_argument("year", type=int, help="year filter")
-    parser.add_argument("clear", type=bool, help="Clear old data")
+    parser.add_argument("--pages", nargs=2, type=int, help="pages range to scrape")
+    parser.add_argument("--year", type=int, help="year filter")
+    parser.add_argument("--clear", type=bool, help="Clear old data", default=False)
 
     args = parser.parse_args()
     # Total review results on their site are conflicting, hardcode as the max tested value for now
