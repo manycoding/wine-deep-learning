@@ -20,7 +20,6 @@ HEADERS = {
     )
 }
 DATA_DIR = "data"
-FILENAME = "winemag-data-{0}-{1}"
 
 UNKNOWN_FORMAT = 0
 APPELLATION_FORMAT_0 = 1
@@ -51,7 +50,6 @@ class Scraper:
             self.worker_pool = Pool(num_jobs)
         else:
             self.multiprocessing = False
-        FILENAME = FILENAME.format(pages_to_scrape, year)
 
     def scrape_site(self):
         if self.clear_old_data:
@@ -93,9 +91,11 @@ class Scraper:
                     review_data = self.scrape_review(review_url)
                 except Exception as e:
                     print("Encountered error", e)
+                    print(f"review_url {review_url}")
                     continue
-            except:
-                print(review_url)
+            except Exception as e:
+                print(f"review_url {review_url}")
+                print(str(e))
             scrape_data.append(review_data)
         self.page_scraped += 1
         self.update_scrape_status()
@@ -219,6 +219,7 @@ class Scraper:
             )
         except Exception as e:
             print("Encountered error", e)
+            print(taster_url)
             taster_name, taster_twitter_handle, taster_photo = None, None, None
 
         review_data = {
@@ -252,8 +253,12 @@ class Scraper:
 
     def parse_taster(self, taster_soup):
         name = taster_soup.title.string.split(" |")[0]
-        twitter = taster_soup.find("li", {"class": "twitter"}).string
         photo = taster_soup.find("div", {"class": "contrib__photo"}).img["src"]
+        twitter_soup = taster_soup.find("li", {"class": "twitter"})
+        twitter = None
+        if twitter_soup:
+            twitter = twitter_soup.string
+
         return name, twitter, photo
 
     def determine_review_format(self, review_soup):
@@ -316,17 +321,10 @@ class Scraper:
 
     def clear_all_data(self):
         self.clear_data_dir()
-        self.clear_output_data()
 
     def clear_data_dir(self):
         try:
             shutil.rmtree(DATA_DIR)
-        except FileNotFoundError:
-            pass
-
-    def clear_output_data(self):
-        try:
-            os.remove("{}.json".format(FILENAME))
         except FileNotFoundError:
             pass
 
@@ -338,7 +336,7 @@ class Scraper:
             with open(file, "rb") as fin:
                 condensed_data += json.load(fin)
         print(len(condensed_data))
-        filename = f"{FILENAME}.json"
+        filename = f"winemag-data-{self.pages_to_scrape[0]}-{self.page_scraped}-{self.year}.json"
         with open(filename, "w") as fout:
             json.dump(condensed_data, fout)
 
@@ -371,7 +369,7 @@ class ReviewFormatException(Exception):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--pages", nargs=2, type=int, help="pages range to scrape")
-    parser.add_argument("--year", type=int, help="year filter")
+    parser.add_argument("--year", type=int, help="year filter", default=0)
     parser.add_argument("--clear", type=bool, help="Clear old data", default=False)
 
     args = parser.parse_args()
